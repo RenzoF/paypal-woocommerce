@@ -321,8 +321,6 @@ for the Payflow SDK. If you purchased your account directly from PayPal, use Pay
 					'amt'=>$order->get_total(), 					// Required.  Amount of the transaction.  Must have 2 decimal places. 
 					'currency'=>get_woocommerce_currency(), // 
 					'dutyamt'=>'', 				//
-					'freightamt'=>'', 			//
-					'taxamt'=>'', 				//
 					'taxexempt'=>'', 			// 
 					'comment1'=>$order->customer_note ? wptexturize($order->customer_note) : '', 			// Merchant-defined value for reporting and auditing purposes.  128 char max
 					'comment2'=>'', 			// Merchant-defined value for reporting and auditing purposes.  128 char max
@@ -465,11 +463,11 @@ for the Payflow SDK. If you purchased your account directly from PayPal, use Pay
                 // Shipping
                 if($shipping > 0)
 				{
-                    $PayPalRequestData['FREIGHTAMT'] = $shipping;
+                    $PayPalRequestData['FREIGHTAMT'] = number_format( $shipping, 2, '.', '');
                 }
             }
-			
-			/**
+
+         	/**
 			 * Add custom Woo cart fees as line items
 			 */
 			foreach ( WC()->cart->get_fees() as $fee )
@@ -480,11 +478,20 @@ for the Payflow SDK. If you purchased your account directly from PayPal, use Pay
 				$PayPalRequestData['L_QTY' . $item_loop ]		= 1;
 				$item_loop++;
 				
-				$ITEMAMT += $fee->amount*$Item['qty'];
+				$ITEMAMT += number_format($fee->amount,2,'.','');
 			}
 			
 			$PayPalRequestData['ITEMAMT'] = number_format($ITEMAMT,2,'.','');
-			
+
+            /**
+             * Rounding adjustment
+             *
+             */
+            if (!empty($PayPalRequestData['FREIGHTAMT']) && (($PayPalRequestData['ITEMAMT'] + @$PayPalRequestData['FREIGHTAMT'] + @$PayPalRequestData['TAXAMT']) != $PayPalRequestData['amt'])) {
+                $PayPalRequestData['FREIGHTAMT'] = $PayPalRequestData['amt'] - ($PayPalRequestData['ITEMAMT'] + @$PayPalRequestData['TAXAMT']);
+            }
+
+
 			/**
 			 * Woo's original extension wasn't sending the request with 
 			 * character count like it's supposed to.  This was added
@@ -596,7 +603,7 @@ for the Payflow SDK. If you purchased your account directly from PayPal, use Pay
 				if($this->error_email_notify)
 				{
 					$admin_email = get_option("admin_email");
-					$message .= __( "PayFlow API call failed." , "paypal-for-woocommerce" )."\n\n";
+					$message  = __( "PayFlow API call failed." , "paypal-for-woocommerce" )."\n\n";
 					$message .= __( 'Error Code: ' ,'paypal-for-woocommerce' ) . $PayPalResult['RESULT'] ."\n";
 					$message .= __( 'Detailed Error Message: ' , 'paypal-for-woocommerce') . $PayPalResult['RESPMSG'];
 					$message .= isset($PayPalResult['PREFPSMSG']) && $PayPalResult['PREFPSMSG'] != '' ? ' - ' . $PayPalResult['PREFPSMSG'] ."\n" : "\n";

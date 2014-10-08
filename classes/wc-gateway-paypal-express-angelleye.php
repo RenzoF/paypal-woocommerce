@@ -1392,6 +1392,14 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
          */
         $Payment['itemamt'] = $total_items+$total_discount; 	// Required if you specify itemized L_AMT fields. Sum of cost of all items in this order.
 
+        /**
+         * Rounding adjustment
+         *
+         */
+        if (!empty($Payment['shippingamt']) && (($Payment['itemamt'] + @$Payment['shippingamt'] + @$Payment['taxamt']) != $Payment['amt'])) {
+            $Payment['shippingamt'] = $Payment['amt'] - ($Payment['itemamt'] + @$Payment['taxamt']);
+        }
+
         /*
          * Then we load the payment into the $Payments array
          */
@@ -1810,6 +1818,14 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
             {
                 $Payment['shippingamt'] = number_format($shipping,2,'.',''); 					// Total shipping costs for this order.  If you specify SHIPPINGAMT you mut also specify a value for ITEMAMT.
             }
+        }
+
+        /**
+         * Rounding adjustment
+         *
+         */
+        if (!empty($Payment['shippingamt']) && (($Payment['itemamt'] + @$Payment['shippingamt'] + @$Payment['taxamt']) != $Payment['amt'])) {
+            $Payment['shippingamt'] = $Payment['amt'] - ($Payment['itemamt'] + @$Payment['taxamt']);
         }
 
         $Payment['order_items'] = $PaymentOrderItems;

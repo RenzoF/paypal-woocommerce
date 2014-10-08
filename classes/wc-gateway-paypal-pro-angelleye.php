@@ -848,7 +848,8 @@ class WC_Gateway_PayPal_Pro_AngellEYE extends WC_Payment_Gateway {
 
             if($shipping > 0)
 			{
-				$PaymentDetails['shippingamt'] = $shipping;					// Total shipping costs for the order.  If you specify shippingamt, you must also specify itemamt.
+                //add round function
+				$PaymentDetails['shippingamt'] = number_format($shipping, 2, '.', '');					// Total shipping costs for the order.  If you specify shippingamt, you must also specify itemamt.
             }
         }
 		
@@ -889,8 +890,16 @@ class WC_Gateway_PayPal_Pro_AngellEYE extends WC_Payment_Gateway {
 		}
 		
 		$PaymentDetails['itemamt'] = number_format($ITEMAMT,2,'.',''); 						// Required if you include itemized cart details. (L_AMTn, etc.)  Subtotal of items not including S&H, or tax.
-		
-		/**
+
+        /**
+         * Rounding adjustment
+         *
+         */
+        if (!empty($PaymentDetails['shippingamt']) && (($PaymentDetails['itemamt'] + $PaymentDetails['shippingamt'] + @$PaymentDetails['taxamt']) != $PaymentDetails['amt'])) {
+            $PaymentDetails['shippingamt'] = $PaymentDetails['amt'] - ($PaymentDetails['itemamt'] + @$PaymentDetails['taxamt']);
+        }
+
+        /**
 		 * 3D Secure Params
 		 */
         if($this->enable_3dsecure)
@@ -995,7 +1004,7 @@ class WC_Gateway_PayPal_Pro_AngellEYE extends WC_Payment_Gateway {
 			if($this->error_email_notify)
 			{
 				$admin_email = get_option("admin_email");
-				$message .= __( "DoDirectPayment API call failed." , "paypal-for-woocommerce" )."\n\n";
+				$message = __( "DoDirectPayment API call failed." , "paypal-for-woocommerce" )."\n\n";
 				$message .= __( 'Error Code: ' ,'paypal-for-woocommerce' ) . $error_code."\n";
 				$message .= __( 'Detailed Error Message: ' , 'paypal-for-woocommerce') . $long_message ."\n";
 
