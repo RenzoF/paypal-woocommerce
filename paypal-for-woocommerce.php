@@ -237,13 +237,17 @@ if(!class_exists('AngellEYE_Gateway_Paypal')){
          */
         function woocommerce_paypal_express_init_styles() {
             global $pp_settings;
-            if ( ! is_admin() && is_cart())
+            wp_register_script( 'angelleye_button', plugins_url( '/assets/js/angelleye-button.js' , __FILE__ ), array( 'jquery' ), WC_VERSION, true );
+            if ( ! is_admin() && is_cart()){
                 wp_enqueue_style( 'ppe_cart', plugins_url( 'assets/css/cart.css' , __FILE__ ) );
+                wp_enqueue_script('angelleye_button');
+            }
 
             if ( ! is_admin() && is_checkout() && @$pp_settings['enabled']=='yes' && @$pp_settings['show_on_checkout']=='yes' )
                 wp_enqueue_style( 'ppe_checkout', plugins_url( 'assets/css/checkout.css' , __FILE__ ) );
             if ( ! is_admin() && is_single() && @$pp_settings['enabled']=='yes' && @$pp_settings['show_on_product_page']=='yes'){
                 wp_enqueue_style( 'ppe_single', plugins_url( 'assets/css/single.css' , __FILE__ ) );
+                wp_enqueue_script('angelleye_button');
             }
 
             if (is_page( wc_get_page_id( 'review_order' ) )) {
@@ -414,19 +418,21 @@ if(!class_exists('AngellEYE_Gateway_Paypal')){
                     case "textbutton":
                         $add_to_cart_action = add_query_arg( 'express_checkout', '1');
                         echo '<div id="paypal_ec_button_product">';
-                        echo '<input type="submit" style="float:left;margin-left:10px;',$hide,'" class="single_variation_wrap paypal_checkout_button button alt" name="express_checkout"  onclick="',"jQuery('form.cart').attr('action','",$add_to_cart_action,"');jQuery('form.cart').submit();",'" value="' . __('Pay with PayPal', 'paypal-for-woocommerce') .'"/>';
+                        echo '<input data-action="'.$add_to_cart_action.'" type="submit" style="float:left;margin-left:10px;',$hide,'" class="single_variation_wrap paypal_checkout_button button alt" name="express_checkout"  onclick="',"jQuery('form.cart').attr('action','",$add_to_cart_action,"');jQuery('form.cart').submit();",'" value="' . __('Pay with PayPal', 'paypal-for-woocommerce') .'"/>';
                         echo '</div>';
                         echo '<div class="clear"></div>';
                         break;
                     case "paypalimage":
+                        $add_to_cart_action = add_query_arg( 'express_checkout', '1');
                         $button_locale_code = defined(WPLANG) && WPLANG != '' ? WPLANG : 'en_US';
                         $button_img =  "https://www.paypal.com/".$button_locale_code."/i/btn/btn_xpressCheckout.gif";
                         echo '<div id="paypal_ec_button_product">';
-                        echo '<input type="image" src="',$button_img,'" style="float:left;margin-left:10px;',$hide,'" class="single_variation_wrap" name="express_checkout" value="' . __('Pay with PayPal', 'paypal-for-woocommerce') .'"/>';
+                        echo '<input data-action="'.$add_to_cart_action.'" type="image" src="',$button_img,'" style="float:left;margin-left:10px;',$hide,'" class="single_variation_wrap" name="express_checkout" value="' . __('Pay with PayPal', 'paypal-for-woocommerce') .'"/>';
                         echo '</div>';
                         echo '<div class="clear"></div>';
                         break;
                     case "customimage":
+                        $add_to_cart_action = add_query_arg( 'express_checkout', '1');
                         if(!empty($pp_settings['checkout_with_pp_button_type']))
                         {
                             $button_img = $pp_settings['checkout_with_pp_button_type_my_custom'];
@@ -437,7 +443,7 @@ if(!class_exists('AngellEYE_Gateway_Paypal')){
                             $button_img =  "https://www.paypal.com/".$button_locale_code."/i/btn/btn_xpressCheckout.gif";
                         }
                         echo '<div id="paypal_ec_button_product">';
-                        echo '<input type="image" src="',$button_img,'" style="float:left;margin-left:10px;',$hide,'" class="single_variation_wrap" name="express_checkout" value="' . __('Pay with PayPal', 'paypal-for-woocommerce') .'"/>';
+                        echo '<input data-action="'.$add_to_cart_action.'" type="image" src="',$button_img,'" style="float:left;margin-left:10px;',$hide,'" class="single_variation_wrap" name="express_checkout" value="' . __('Pay with PayPal', 'paypal-for-woocommerce') .'"/>';
                         echo '</div>';
                         echo '<div class="clear"></div>';
                         break;
