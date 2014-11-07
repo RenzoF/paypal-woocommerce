@@ -845,10 +845,10 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
                 $this->add_log( '...Order ID: ' . $order_id );
                 $order = new WC_Order( $order_id );
                 do_action( 'woocommerce_ppe_do_payaction', $order );
-                $this->add_log( '...Order Total: ' . $order->order_total );
+                $this->add_log( '...Order Total: ' . $order->get_total() );
                 $this->add_log( '...Cart Total: '.WC()->cart->get_total() );
                 $this->add_log( "...Token:" . $this->get_session( 'TOKEN' ) );
-                $result = $this->ConfirmPayment( $order->order_total );
+                $result = $this->ConfirmPayment( $order->get_total() );
 
 				/**
 				 * Customer Notes
@@ -988,7 +988,7 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
          */
         $SECFields = array(
             'token' => '', 								// A timestamped token, the value of which was returned by a previous SetExpressCheckout call.
-            'maxamt' => number_format(($paymentAmount * 2),2,'.',''), 							// The expected maximum total amount the order will be, including S&H and sales tax.
+            'maxamt' => $paymentAmount, 							// The expected maximum total amount the order will be, including S&H and sales tax.
             'returnurl' => urldecode($returnURL), 							// Required.  URL to which the customer will be returned after returning from PayPal.  2048 char max.
             'cancelurl' => urldecode($cancelURL), 							// Required.  URL to which the customer will be returned if they cancel payment on PayPal's site.
             'callback' => '', 							// URL to which the callback request from PayPal is sent.  Must start with https:// for production.
@@ -1175,7 +1175,6 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
             {
                 $product_price = number_format($_product->get_price_excluding_tax(),2,'.','');
             }
-
             $Item = array(
                 'name' => $values['name'], 								// Item name. 127 char max.
                 'desc' => '', 								// Item description. 127 char max.
@@ -1203,7 +1202,6 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
             $total_items += $product_price*$values['quantity'];
             $ctr++;
         }
-
 		/**
 		 * Add custom Woo cart fees as line items
 		 */
@@ -1237,23 +1235,8 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
 
         }
 
-        /*
-         * Get discount(s)
-         */
-        if(WC()->cart->get_cart_discount_total())
-        {
-            foreach(WC()->cart->get_coupons('cart') as $code => $coupon)
-            {
-                $Item = array(
-                    'name' => 'Cart Discount',
-                    'number' => $code,
-                    'qty' => '1',
-                    'amt' => '-'.number_format(WC()->cart->coupon_discount_amounts[$code],2,'.','')
-                );
-                array_push($PaymentOrderItems,$Item);
-            }
-            $total_discount -= WC()->cart->get_cart_discount_total();
-        }
+
+
 
         if(WC()->cart->get_order_discount_total())
         {
@@ -1268,6 +1251,39 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
                 array_push($PaymentOrderItems,$Item);
             }
             $total_discount -= WC()->cart->get_order_discount_total();
+        }
+
+        /*
+         * Get discount(s)
+         */
+        if(WC()->cart->get_cart_discount_total())
+        {
+            $discount_amount = 0;
+            foreach(WC()->cart->get_coupons('cart') as $code => $coupon)
+            {
+                $discount_amount += (float)number_format(WC()->cart->coupon_discount_amounts[$code],2,'.','');
+            }
+            $total_discount -= WC()->cart->get_cart_discount_total();
+            if( $total_items + $total_discount != (float)number_format(WC()->cart->total,2,'.','') ){
+                $discount_amount += (float)number_format( (float)number_format(WC()->cart->total,2,'.','') - ($total_items + $total_discount),2,'.','' );
+                $total_discount -= (float)number_format( (float)number_format(WC()->cart->total,2,'.','') - ($total_items + $total_discount),2,'.','' );
+            }
+            $Item = array(
+                'name' => 'Cart Discount',
+                'number' => 'cart_discount',
+                'qty' => '1',
+                'amt' => $discount_amount
+            );
+            array_push($PaymentOrderItems,$Item);
+        }elseif( $total_items + $total_discount != (float)number_format(WC()->cart->total,2,'.','')  ){
+            $Item = array(
+                'name' => 'Cart Discount',
+                'number' => 'cart_discount',
+                'qty' => '1',
+                'amt' => number_format( (float)number_format(WC()->cart->total,2,'.','') - ($total_items + $total_discount),2,'.','' )
+            );
+            array_push($PaymentOrderItems,$Item);
+            $total_discount += (float)number_format( (float)number_format(WC()->cart->total,2,'.','') - ($total_items + $total_discount),2,'.','' );
         }
 
         /*
@@ -1632,23 +1648,6 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
 
 			}
 
-            /*
-             * Get discounts
-             */
-            if($order->get_cart_discount()>0)
-            {
-                foreach(WC()->cart->get_coupons('cart') as $code => $coupon)
-                {
-                    $Item = array(
-                        'name' => 'Cart Discount',
-                        'number' => $code,
-                        'qty' => '1',
-                        'amt' => '-'.number_format(WC()->cart->coupon_discount_amounts[$code],2,'.','')
-                    );
-                    array_push($PaymentOrderItems,$Item);
-                }
-                $ITEMAMT -= $order->get_cart_discount();
-            }
 
             if($order->get_order_discount()>0)
             {
@@ -1663,6 +1662,48 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
                     array_push($PaymentOrderItems,$Item);
                 }
                 $ITEMAMT -= $order->get_order_discount();
+            }
+
+
+
+            /*
+             * Get discounts
+             */
+            if($order->get_cart_discount()>0)
+            {
+                $discount_amount = 0;
+                foreach(WC()->cart->get_coupons('cart') as $code => $coupon)
+                {
+                    $discount_amount -= number_format(WC()->cart->coupon_discount_amounts[$code],2,'.','');
+                    $Item = array(
+                        'name' => 'Cart Discount',
+                        'number' => $code,
+                        'qty' => '1',
+                        'amt' => '-'.number_format(WC()->cart->coupon_discount_amounts[$code],2,'.','')
+                    );
+                    array_push($PaymentOrderItems,$Item);
+                }
+                $ITEMAMT -= $order->get_cart_discount();
+                if( (float)number_format($FinalPaymentAmt,2,'.','') != $ITEMAMT){
+                    $discount_amount -= number_format( $ITEMAMT - (float)number_format($FinalPaymentAmt,2,'.',''),2,'.','' );
+                    $ITEMAMT -= (float)number_format( (float)number_format($FinalPaymentAmt,2,'.','') - $ITEMAMT,2,'.','' );
+                }
+                $Item = array(
+                    'name' => 'Cart Discount',
+                    'number' => 'cart-discount',
+                    'qty' => '1',
+                    'amt' => $discount_amount
+                );
+                array_push($PaymentOrderItems,$Item);
+            }elseif((float)number_format($FinalPaymentAmt,2,'.','') != $ITEMAMT){
+                $Item = array(
+                    'name' => 'Cart Discount',
+                    'number' => 'discount',
+                    'qty' => '1',
+                    'amt' => number_format( (float)number_format($FinalPaymentAmt,2,'.','') - $ITEMAMT,2,'.','' )
+                );
+                array_push($PaymentOrderItems,$Item);
+                $ITEMAMT += (float)number_format( (float)number_format($FinalPaymentAmt,2,'.','') - $ITEMAMT,2,'.','' );
             }
 
             /*
