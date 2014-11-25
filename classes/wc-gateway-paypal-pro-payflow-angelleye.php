@@ -329,7 +329,7 @@ for the Payflow SDK. If you purchased your account directly from PayPal, use Pay
 					'trxtype'=>'S', 				// Required.  Indicates the type of transaction to perform.  Values are:  A = Authorization, B = Balance Inquiry, C = Credit, D = Delayed Capture, F = Voice Authorization, I = Inquiry, L = Data Upload, N = Duplicate Transaction, S = Sale, V = Void
 					'acct'=>$card_number, 				// Required for credit card transaction.  Credit card or purchase card number.
 					'expdate'=>$card_exp, 				// Required for credit card transaction.  Expiration date of the credit card.  Format:  MMYY
-					'amt'=>$order->get_total(), 					// Required.  Amount of the transaction.  Must have 2 decimal places. 
+					'amt'=> number_format( $order->get_total(), 2, '.', '' ), 					// Required.  Amount of the transaction.  Must have 2 decimal places.
 					'currency'=>get_woocommerce_currency(), // 
 					'dutyamt'=>'', 				//
 					'freightamt'=>'', 			//
@@ -491,7 +491,7 @@ for the Payflow SDK. If you purchased your account directly from PayPal, use Pay
 				$PayPalRequestData['L_QTY' . $item_loop ]		= 1;
 				$item_loop++;
 				
-				$ITEMAMT += $fee->amount*$Item['qty'];
+				$ITEMAMT += $fee->amount;
 			}
 			
 			$PayPalRequestData['ITEMAMT'] = number_format($ITEMAMT,2,'.','');
@@ -607,7 +607,7 @@ for the Payflow SDK. If you purchased your account directly from PayPal, use Pay
 				if($this->error_email_notify)
 				{
 					$admin_email = get_option("admin_email");
-					$message .= __( "PayFlow API call failed." , "paypal-for-woocommerce" )."\n\n";
+					$message = __( "PayFlow API call failed." , "paypal-for-woocommerce" )."\n\n";
 					$message .= __( 'Error Code: ' ,'paypal-for-woocommerce' ) . $PayPalResult['RESULT'] ."\n";
 					$message .= __( 'Detailed Error Message: ' , 'paypal-for-woocommerce') . $PayPalResult['RESPMSG'];
 					$message .= isset($PayPalResult['PREFPSMSG']) && $PayPalResult['PREFPSMSG'] != '' ? ' - ' . $PayPalResult['PREFPSMSG'] ."\n" : "\n";

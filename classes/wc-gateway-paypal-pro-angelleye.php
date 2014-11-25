@@ -737,7 +737,7 @@ class WC_Gateway_PayPal_Pro_AngellEYE extends WC_Payment_Gateway {
 								);
 							
 		$PaymentDetails = array(
-								'amt' => $order->get_total(), 							// Required.  Total amount of order, including shipping, handling, and tax.  
+								'amt' => number_format($order->get_total(),2,'.',''), 							// Required.  Total amount of order, including shipping, handling, and tax.
 								'currencycode' => get_woocommerce_currency(), 					// Required.  Three-letter currency code.  Default is USD.
 								'insuranceamt' => '', 					// Total shipping insurance costs for this order.  
 								'shipdiscamt' => '', 					// Shipping discount for the order, specified as a negative number.
@@ -1016,7 +1016,7 @@ class WC_Gateway_PayPal_Pro_AngellEYE extends WC_Payment_Gateway {
 			if($this->error_email_notify)
 			{
 				$admin_email = get_option("admin_email");
-				$message .= __( "DoDirectPayment API call failed." , "paypal-for-woocommerce" )."\n\n";
+				$message = __( "DoDirectPayment API call failed." , "paypal-for-woocommerce" )."\n\n";
 				$message .= __( 'Error Code: ' ,'paypal-for-woocommerce' ) . $error_code."\n";
 				$message .= __( 'Detailed Error Message: ' , 'paypal-for-woocommerce') . $long_message ."\n";
 
