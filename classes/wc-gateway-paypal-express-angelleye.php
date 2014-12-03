@@ -1862,10 +1862,12 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
             unset($payment_gateways['paypal_pro']);
             unset($payment_gateways['paypal_pro_payflow']);
             if (empty($payment_gateways) ) {
-                echo '<style>.cart input.checkout-button,
-                            .cart a.checkout-button {
-                                display: none !important;
-                            }</style>';
+                echo '<script type="text/javascript">
+                            jQuery(document).ready(function(){
+                                if (jQuery(".checkout-button").is("input")) {
+                                    jQuery(".checkout-button").val("'.__('Pay with Credit Card', 'paypal-for-woocommerce').'");
+                                } else jQuery(".checkout-button").html("<span>'.__('Pay with Credit Card', 'paypal-for-woocommerce').'</span>");
+                            });</script>';
             }
 
 
@@ -1888,10 +1890,10 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
 
         unset($payment_gateways['paypal_pro']);
         unset($payment_gateways['paypal_pro_payflow']);
-        if (empty($payment_gateways) && (@$pp_pro['enabled']=='yes' || @$pp_payflow['enabled']=='yes'))
+        /*if (empty($payment_gateways) && (@$pp_pro['enabled']=='yes' || @$pp_payflow['enabled']=='yes'))
         {
             echo '<a class="paypal_checkout_button button alt" href="#" onclick="jQuery(\'.checkout-button\').click(); return false;">' . __('Pay with Credit Card', 'paypal-for-woocommerce') .'</a> &nbsp;';
-        }
+        }*/
 
         echo '<div class="clear"></div>';
 
