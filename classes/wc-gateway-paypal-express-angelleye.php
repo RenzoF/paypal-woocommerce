@@ -1256,6 +1256,9 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
         /*
          * Get discount(s)
          */
+
+        $tmp_total =  $total_items + $total_discount + $shipping + $tax;
+
         if(WC()->cart->get_cart_discount_total())
         {
             $discount_amount = 0;
@@ -1264,9 +1267,9 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
                 $discount_amount += (float)number_format(WC()->cart->coupon_discount_amounts[$code],2,'.','');
             }
             $total_discount -= WC()->cart->get_cart_discount_total();
-            if( $total_items + $total_discount != (float)number_format(WC()->cart->total,2,'.','') ){
-                $discount_amount += (float)number_format( (float)number_format(WC()->cart->total,2,'.','') - ($total_items + $total_discount),2,'.','' );
-                $total_discount -= (float)number_format( (float)number_format(WC()->cart->total,2,'.','') - ($total_items + $total_discount),2,'.','' );
+            if( $tmp_total != (float)number_format(WC()->cart->total,2,'.','') ){
+                $discount_amount += (float)number_format( (float)number_format(WC()->cart->total,2,'.','') - ($tmp_total),2,'.','' );
+                $total_discount -= (float)number_format( (float)number_format(WC()->cart->total,2,'.','') - ($tmp_total),2,'.','' );
             }
             $Item = array(
                 'name' => 'Cart Discount',
@@ -1275,15 +1278,15 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
                 'amt' => $discount_amount
             );
             array_push($PaymentOrderItems,$Item);
-        }elseif( $total_items + $total_discount != (float)number_format(WC()->cart->total,2,'.','')  ){
+        }elseif( $tmp_total != (float)number_format(WC()->cart->total,2,'.','')  ){
             $Item = array(
                 'name' => 'Cart Discount',
                 'number' => 'cart_discount',
                 'qty' => '1',
-                'amt' => number_format( (float)number_format(WC()->cart->total,2,'.','') - ($total_items + $total_discount),2,'.','' )
+                'amt' => number_format( (float)number_format(WC()->cart->total,2,'.','') - ($tmp_total),2,'.','' )
             );
             array_push($PaymentOrderItems,$Item);
-            $total_discount += (float)number_format( (float)number_format(WC()->cart->total,2,'.','') - ($total_items + $total_discount),2,'.','' );
+            $total_discount += (float)number_format( (float)number_format(WC()->cart->total,2,'.','') - ($tmp_total),2,'.','' );
         }
 
         /*
