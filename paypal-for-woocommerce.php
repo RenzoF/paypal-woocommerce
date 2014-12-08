@@ -146,6 +146,7 @@ if(!class_exists('AngellEYE_Gateway_Paypal')){
                 'docs'      => sprintf( '<a href="%s" target="_blank">%s</a>', 'http://www.angelleye.com/category/docs/paypal-for-woocommerce/?utm_source=paypal_for_woocommerce&utm_medium=docs_link&utm_campaign=paypal_for_woocommerce', __( 'Docs', 'paypal-for-woocommerce' ) ),
                 'support'   => sprintf( '<a href="%s" target="_blank">%s</a>', 'http://wordpress.org/support/plugin/paypal-for-woocommerce/', __( 'Support', 'paypal-for-woocommerce' ) ),
                 'review'    => sprintf( '<a href="%s" target="_blank">%s</a>', 'http://wordpress.org/support/view/plugin-reviews/paypal-for-woocommerce', __( 'Write a Review', 'paypal-for-woocommerce' ) ),
+                'support_forum'    => sprintf( '<a href="%s" target="_blank">%s</a>', 'http://angelleye.com/forum/categories/paypal-for-woocommerce', __( 'Support Forum', 'paypal-for-woocommerce' ) ),
             );
 
             // add the links to the front of the actions list
