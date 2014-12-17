@@ -75,7 +75,7 @@ class WC_Gateway_PayPal_Pro_AngellEYE extends WC_Payment_Gateway {
         $this->enable_3dsecure 		= isset( $this->settings['enable_3dsecure'] ) && $this->settings['enable_3dsecure'] == 'yes' ? true : false;
         $this->liability_shift 		= isset( $this->settings['liability_shift'] ) && $this->settings['liability_shift'] == 'yes' ? true : false;
         $this->debug				= isset( $this->settings['debug'] ) && $this->settings['debug'] == 'yes' ? true : false;
-        $this->send_items			= true;//isset( $this->settings['send_items'] ) && $this->settings['send_items'] == 'yes' ? true : false;
+        $this->send_items			= isset( $this->settings['send_items'] ) && $this->settings['send_items'] == 'yes' ? true : false;
         // 3DS
         if ( $this->enable_3dsecure ) {
             $this->centinel_pid		= $this->settings['centinel_pid'];
@@ -236,13 +236,13 @@ class WC_Gateway_PayPal_Pro_AngellEYE extends WC_Payment_Gateway {
 				'description' => __( 'Detailed displays actual errors returned from PayPal.  Generic displays general errors that do not reveal details 
 									and helps to prevent fraudulant activity on your site.' , 'paypal-for-woocommerce')
             ),
-            /*'send_items' => array(
+            'send_items' => array(
                 'title' => __( 'Send Item Details', 'paypal-for-woocommerce' ),
                 'label' => __( 'Send Line Items to PayPal', 'paypal-for-woocommerce' ),
                 'type' => 'checkbox',
                 'description' => __( 'Sends line items to PayPal. If you experience rounding errors this can be disabled.', 'paypal-for-woocommerce' ),
-                'default' => 'no'
-            ),*/
+                'default' => 'yes'
+            ),
             'debug' => array(
                 'title' => __( 'Debug Log', 'woocommerce' ),
                 'type' => 'checkbox',
@@ -753,99 +753,96 @@ class WC_Gateway_PayPal_Pro_AngellEYE extends WC_Payment_Gateway {
 		$OrderItems = array();		
 		$item_loop = 0;
         if ( sizeof( $order->get_items() ) > 0 ) {
-            $ITEMAMT = $TAXAMT = 0;
-            $inc_tax = get_option( 'woocommerce_prices_include_tax' ) == 'yes' ? true : false;
-            foreach ( $order->get_items() as $item ) {
-                $_product = $order->get_product_from_item($item);
-                if ( $item['qty'] ) {
-                    $sku = $_product->get_sku();
-                    if ($_product->product_type=='variation') {
-                        if (empty($sku)) {
-                            $sku = $_product->parent->get_sku();
+            if( $this->send_items ) {
+                $ITEMAMT = $TAXAMT = 0;
+                $inc_tax = get_option('woocommerce_prices_include_tax') == 'yes' ? true : false;
+                foreach ($order->get_items() as $item) {
+                    $_product = $order->get_product_from_item($item);
+                    if ($item['qty']) {
+                        $sku = $_product->get_sku();
+                        if ($_product->product_type == 'variation') {
+                            if (empty($sku)) {
+                                $sku = $_product->parent->get_sku();
+                            }
+
+                            //$this->log->add('paypal-pro', print_r($item['item_meta'], true));
+
+                            $item_meta = new WC_Order_Item_Meta($item['item_meta']);
+                            $meta = $item_meta->display(true, true);
+                            $item['name'] = html_entity_decode($item['name'], ENT_NOQUOTES, 'UTF-8');
+                            if (!empty($meta)) {
+                                $item['name'] .= " - " . str_replace(", \n", " - ", $meta);
+                            }
                         }
 
-                        //$this->log->add('paypal-pro', print_r($item['item_meta'], true));
-
-                        $item_meta = new WC_Order_Item_Meta( $item['item_meta'] );
-                        $meta = $item_meta->display(true, true);
-                        $item['name'] = html_entity_decode($item['name'], ENT_NOQUOTES, 'UTF-8');
-                        if (!empty($meta)) {
-                            $item['name'] .= " - ".str_replace(", \n", " - ",$meta);
+                        /**
+                         * Get price based on text setting.
+                         */
+                        if (get_option('woocommerce_prices_include_tax') == 'yes') {
+                            $product_price = $order->get_item_subtotal($item, true, false);
+                        } else {
+                            $product_price = $order->get_item_subtotal($item, false, true);
                         }
-                    }
-					
-					/**
-					 * Get price based on text setting.
-					 */
-					if(get_option('woocommerce_prices_include_tax') == 'yes')
-					{
-                        $product_price = $order->get_item_subtotal($item,true,false);
-                    }
-					else
-					{
-                        $product_price = $order->get_item_subtotal($item,false,true);
-                    }
-					
-					$Item	 = array(
-									'l_name' => $item['name'], 						// Item Name.  127 char max.
-									'l_desc' => '', 						// Item description.  127 char max.
-									'l_amt' => number_format($product_price,2,'.',''), 							// Cost of individual item.
-									'l_number' => $sku, 						// Item Number.  127 char max.
-									'l_qty' => $item['qty'], 							// Item quantity.  Must be any positive integer.  
-									'l_taxamt' => '', 						// Item's sales tax amount.
-									'l_ebayitemnumber' => '', 				// eBay auction number of item.
-									'l_ebayitemauctiontxnid' => '', 		// eBay transaction ID of purchased item.
-									'l_ebayitemorderid' => '' 				// eBay order ID for the item.
-									);
-					array_push($OrderItems, $Item);
 
-                    $ITEMAMT += $product_price * $item['qty'];
-                    $item_loop++;
-                }
-            }
+                        $Item = array(
+                            'l_name' => $item['name'],                        // Item Name.  127 char max.
+                            'l_desc' => '',                        // Item description.  127 char max.
+                            'l_amt' => number_format($product_price, 2, '.', ''),                            // Cost of individual item.
+                            'l_number' => $sku,                        // Item Number.  127 char max.
+                            'l_qty' => $item['qty'],                            // Item quantity.  Must be any positive integer.
+                            'l_taxamt' => '',                        // Item's sales tax amount.
+                            'l_ebayitemnumber' => '',                // eBay auction number of item.
+                            'l_ebayitemauctiontxnid' => '',        // eBay transaction ID of purchased item.
+                            'l_ebayitemorderid' => ''                // eBay order ID for the item.
+                        );
+                        array_push($OrderItems, $Item);
 
-            //Cart Discount
-            if($order->get_cart_discount()>0)
-			{
-                foreach(WC()->cart->get_coupons('cart') as $code => $coupon)
-				{
-					$Item	 = array(
-									'l_name' => 'Cart Discount', 						// Item Name.  127 char max.
-									'l_desc' => '', 						// Item description.  127 char max.
-									'l_amt' => '-'.WC()->cart->coupon_discount_amounts[$code], 							// Cost of individual item.
-									'l_number' => $code, 						// Item Number.  127 char max.
-									'l_qty' => '1', 							// Item quantity.  Must be any positive integer.  
-									'l_taxamt' => '', 						// Item's sales tax amount.
-									'l_ebayitemnumber' => '', 				// eBay auction number of item.
-									'l_ebayitemauctiontxnid' => '', 		// eBay transaction ID of purchased item.
-									'l_ebayitemorderid' => '' 				// eBay order ID for the item.
-									);
-					array_push($OrderItems, $Item);
+                        $ITEMAMT += $product_price * $item['qty'];
+                        $item_loop++;
+                    }
                 }
-				
-                $ITEMAMT = $ITEMAMT - $order->get_cart_discount();
-            }
 
-            //Order Discount
-            if($order->get_order_discount()>0)
-			{
-                foreach(WC()->cart->get_coupons('order') as $code => $coupon)
-				{
-					$Item	 = array(
-									'l_name' => 'Order Discount', 						// Item Name.  127 char max.
-									'l_desc' => '', 						// Item description.  127 char max.
-									'l_amt' => '-'.WC()->cart->coupon_discount_amounts[$code], 							// Cost of individual item.
-									'l_number' => $code, 						// Item Number.  127 char max.
-									'l_qty' => '1', 							// Item quantity.  Must be any positive integer.  
-									'l_taxamt' => '', 						// Item's sales tax amount.
-									'l_ebayitemnumber' => '', 				// eBay auction number of item.
-									'l_ebayitemauctiontxnid' => '', 		// eBay transaction ID of purchased item.
-									'l_ebayitemorderid' => '' 				// eBay order ID for the item.
-									);
-					array_push($OrderItems, $Item);
+                //Cart Discount
+                if ($order->get_cart_discount() > 0) {
+                    foreach (WC()->cart->get_coupons('cart') as $code => $coupon) {
+                        $Item = array(
+                            'l_name' => 'Cart Discount',                        // Item Name.  127 char max.
+                            'l_desc' => '',                        // Item description.  127 char max.
+                            'l_amt' => '-' . WC()->cart->coupon_discount_amounts[$code],                            // Cost of individual item.
+                            'l_number' => $code,                        // Item Number.  127 char max.
+                            'l_qty' => '1',                            // Item quantity.  Must be any positive integer.
+                            'l_taxamt' => '',                        // Item's sales tax amount.
+                            'l_ebayitemnumber' => '',                // eBay auction number of item.
+                            'l_ebayitemauctiontxnid' => '',        // eBay transaction ID of purchased item.
+                            'l_ebayitemorderid' => ''                // eBay order ID for the item.
+                        );
+                        array_push($OrderItems, $Item);
+                    }
+
+                    $ITEMAMT = $ITEMAMT - $order->get_cart_discount();
                 }
-				
-                $ITEMAMT = $ITEMAMT - $order->get_order_discount();
+
+                //Order Discount
+                if ($order->get_order_discount() > 0) {
+                    foreach (WC()->cart->get_coupons('order') as $code => $coupon) {
+                        $Item = array(
+                            'l_name' => 'Order Discount',                        // Item Name.  127 char max.
+                            'l_desc' => '',                        // Item description.  127 char max.
+                            'l_amt' => '-' . WC()->cart->coupon_discount_amounts[$code],                            // Cost of individual item.
+                            'l_number' => $code,                        // Item Number.  127 char max.
+                            'l_qty' => '1',                            // Item quantity.  Must be any positive integer.
+                            'l_taxamt' => '',                        // Item's sales tax amount.
+                            'l_ebayitemnumber' => '',                // eBay auction number of item.
+                            'l_ebayitemauctiontxnid' => '',        // eBay transaction ID of purchased item.
+                            'l_ebayitemorderid' => ''                // eBay order ID for the item.
+                        );
+                        array_push($OrderItems, $Item);
+                    }
+
+                    $ITEMAMT = $ITEMAMT - $order->get_order_discount();
+                }
+            }else{
+                $ITEMAMT = $order->get_subtotal();
             }
 			
 			/**
@@ -908,6 +905,9 @@ class WC_Gateway_PayPal_Pro_AngellEYE extends WC_Payment_Gateway {
 			$ITEMAMT += $fee->amount*$Item['qty'];
 			$item_loop++;
 		}
+        if( !$this->send_items ){
+            $OrderItems = array();
+        }
 		
 		$PaymentDetails['itemamt'] = number_format($ITEMAMT,2,'.',''); 						// Required if you include itemized cart details. (L_AMTn, etc.)  Subtotal of items not including S&H, or tax.
 		

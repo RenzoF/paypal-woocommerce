@@ -49,6 +49,7 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
         $this->use_wp_locale_code      = isset( $this->settings['use_wp_locale_code'] ) ? $this->settings['use_wp_locale_code'] : '';
         $this->button_locale_code      = defined( WPLANG ) && WPLANG != '' && $this->use_wp_locale_code == 'yes' ? WPLANG : 'en_US';
         $this->angelleye_skip_text     = isset( $this->settings['angelleye_skip_text'] ) ? $this->settings['angelleye_skip_text'] : '';
+        $this->send_items			   = isset( $this->settings['send_items'] ) && $this->settings['send_items'] == 'yes' ? true : false;
 
 
         /*
@@ -484,6 +485,13 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
                 'type' => 'text',
                 'description' => __( 'This message will be displayed next to the PayPal Express Checkout button at the top of the checkout page.' ),
                 'default' => __('Skip the forms and pay faster with PayPal!', 'paypal-for-woocommerce' )
+            ),
+            'send_items' => array(
+                'title' => __( 'Send Item Details', 'paypal-for-woocommerce' ),
+                'label' => __( 'Send Line Items to PayPal', 'paypal-for-woocommerce' ),
+                'type' => 'checkbox',
+                'description' => __( 'Sends line items to PayPal. If you experience rounding errors this can be disabled.', 'paypal-for-woocommerce' ),
+                'default' => 'yes'
             ),
             /*'Locale' => array(
                 'title' => __( 'Locale', 'paypal-for-woocommerce' ),
@@ -1301,12 +1309,15 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
          * Now that all the order items are gathered, including discounts,
          * we'll push them back into the Payment.
          */
-        $Payment['order_items'] = $PaymentOrderItems;
-
-        /*
-         * Now that we've looped and calculated item totals
-         * we can fill in the ITEMAMT
-         */
+        if( $this->send_items ) {
+            $Payment['order_items'] = $PaymentOrderItems;
+            /*
+             * Now that we've looped and calculated item totals
+             * we can fill in the ITEMAMT
+             */
+        }else{
+            $Payment['order_items'] = array();
+        }
         $Payment['itemamt'] = $total_items+$total_discount; 	// Required if you specify itemized L_AMT fields. Sum of cost of all items in this order.
 
         /*
@@ -1728,8 +1739,11 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
                 $Payment['shippingamt'] = number_format($shipping,2,'.',''); 					// Total shipping costs for this order.  If you specify SHIPPINGAMT you mut also specify a value for ITEMAMT.
             }
         }
-
-        $Payment['order_items'] = $PaymentOrderItems;
+        if( $this->send_items ) {
+            $Payment['order_items'] = $PaymentOrderItems;
+        }else{
+            $Payment['order_items'] = array();
+        }
         array_push($Payments, $Payment);
 
         $UserSelectedOptions = array(
