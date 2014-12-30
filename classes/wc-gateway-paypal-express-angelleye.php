@@ -1165,7 +1165,13 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
 
         $PaymentOrderItems = array();
         $ctr = $total_items = $total_discount = $total_tax = $order_total = 0;
-        foreach(WC()->cart->get_cart() as $cart_item_key => $values)
+
+        if ( class_exists( 'Woo_Bulk_Discount_Plugin_t4m' ) ) {
+            $bulk_discount = new Woo_Bulk_Discount_Plugin_t4m();
+            $bulk_discount->action_before_calculate(WC()->cart);
+        }
+
+        foreach(WC()->cart->get_cart() as $values)
         {
             /*
              * Get product data from WooCommerce
