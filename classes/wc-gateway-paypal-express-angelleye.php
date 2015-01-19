@@ -862,10 +862,10 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
                 $this->add_log( '...Order ID: ' . $order_id );
                 $order = new WC_Order( $order_id );
                 do_action( 'woocommerce_ppe_do_payaction', $order );
-                $this->add_log( '...Order Total: ' . $order->order_total );
+                $this->add_log( '...Order Total: ' . $order->get_total() );
                 $this->add_log( '...Cart Total: '.WC()->cart->get_total() );
                 $this->add_log( "...Token:" . $this->get_session( 'TOKEN' ) );
-                $result = $this->ConfirmPayment( $order->order_total );
+                $result = $this->ConfirmPayment( $order->get_total() );
 
 				/**
 				 * Customer Notes
