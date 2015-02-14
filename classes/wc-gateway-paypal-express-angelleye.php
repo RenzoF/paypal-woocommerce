@@ -83,7 +83,7 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
         if ( $this->enabled == 'yes' && ($this->show_on_checkout == 'top' || $this->show_on_checkout == 'both') )
             add_action( 'woocommerce_before_checkout_form', array( $this, 'checkout_message' ), 5 );
         add_action( 'woocommerce_ppe_do_payaction', array($this, 'get_confirm_order'));
-        add_action( 'woocommerce_after_checkout_validation', array($this, 'regular_checkout'));
+        add_action( 'woocommerce_checkout_order_processed', array($this, 'regular_checkout'), 10, 2);
 
     }
 
@@ -371,7 +371,7 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
                 'options' => array(
                             'no' => __( "Do not display on checkout page." , 'paypal-for-woocommerce' ),
                             'top' => __( 'Display at the top of the checkout page.' , 'paypal-for-woocommerce' ) ,
-                            'regular' => __( 'Display in general list of enabled gatways on checkout page.' , 'paypal-for-woocommerce' ) , 
+                            'regular' => __( 'Display in general list of enabled gatways on checkout page.' , 'paypal-for-woocommerce' ) ,
 							'both' => __( 'Display both at the top and in the general list of gateways on the checkout page.' ) ) ,
                 'default' => 'top',
 				'description' => __( 'Displaying the checkout button at the top of the checkout page will allow users to skip filling out the forms and can potentially increase conversion rates.' )
@@ -861,7 +861,12 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
                 if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) )
                     define( 'WOOCOMMERCE_CHECKOUT', true );
                 WC()->cart->calculate_totals();
+
+                $order_id = WC()->session->get( 'order_id' );
+
+                if (empty($order_id)){
                     $order_id = WC()->checkout()->create_order();
+                }
 
 				/**
 				 * Update meta data with session data
@@ -2095,7 +2100,10 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
     /**
      * Regular checkout process
      */
-    function regular_checkout($posted) {
+    function regular_checkout($order_id, $posted) {
+
+        $this->set_session( 'order_id', $order_id );
+
         if ($posted['payment_method'] == 'paypal_express' && wc_notice_count( 'error' ) == 0 ) {
             $this->paypal_express_checkout($posted);
         }
