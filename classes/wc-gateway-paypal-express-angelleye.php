@@ -1250,14 +1250,11 @@ class WC_Gateway_PayPal_Express_AngellEYE extends WC_Payment_Gateway {
             /*
              * Set price based on tax option.
              */
-            if(get_option('woocommerce_prices_include_tax') == 'yes')
-            {
-                $product_price = number_format($_product->get_price_including_tax(),2,'.','');
-            }
-            else
-            {
-                $product_price = number_format($_product->get_price_excluding_tax(),2,'.','');
-            }
+             if (get_option('woocommerce_prices_include_tax') == 'yes') {
+-                $product_price = number_format(($values['line_total'] + $values['line_tax']) / $qty, 2, '.', '');
+-            } else {
+-                $product_price = number_format($values['line_total'] / $qty, 2, '.', '');
+             }
 
             $Item = array(
                 'name' => $values['name'], 								// Item name. 127 char max.
